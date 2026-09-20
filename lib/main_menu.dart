@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'modes/pass_and_play.dart';
+import 'modes/bot_match.dart';
 
 class MainMenuScreen extends StatelessWidget {
   const MainMenuScreen({super.key});
@@ -15,12 +16,16 @@ class MainMenuScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // لوگو و عنوان بازی
+                // آیکون تاس و عنوان بازی
                 const Icon(Icons.casino, size: 72, color: Colors.amber),
                 const SizedBox(height: 16),
                 const Text(
                   'کلوب تخته نرد پارسی',
-                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 const Text(
@@ -29,7 +34,7 @@ class MainMenuScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 48),
 
-                // دکمه ۱: بازی دو نفره آفلاین
+                // دکمه ۱: بازی دو نفره روی یک گوشی
                 _MenuButton(
                   title: '🎲 بازی دو نفره (روی یک گوشی)',
                   subtitle: 'همراه با دوست یا خانواده بدون اینترنت',
@@ -37,25 +42,34 @@ class MainMenuScreen extends StatelessWidget {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const PassAndPlayScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const PassAndPlayScreen(),
+                      ),
                     );
                   },
                 ),
 
                 const SizedBox(height: 16),
 
-                // دکمه ۲: بازی با هوش مصنوعی (در مرحله بعد تکمیل می‌کنیم)
+                // دکمه ۲: رقابت با ربات هوش مصنوعی
                 _MenuButton(
                   title: '🤖 بازی با ربات هوشمند',
-                  subtitle: 'تمرین آفلاین در ۳ سطح مبتدی تا حرفه‌ای',
-                  isLocked: true,
-                  badge: 'به‌زودی',
-                  onTap: () {},
+                  subtitle: 'تمرین آفلاین و رقابت با هوش مصنوعی',
+                  isLocked: false,
+                  badge: 'هوش مصنوعی',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const BotMatchScreen(),
+                      ),
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 16),
 
-                // دکمه ۳: سایر بازی‌ها
+                // دکمه ۳: بسته بازی‌های آینده (ماروپله و دوز)
                 _MenuButton(
                   title: '❌⭕ دوز و مار و پله',
                   subtitle: 'بسته بازی‌های نوستالژیک دورهمی',
@@ -107,30 +121,48 @@ class _MenuButton extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         subtitle,
-                        style: const TextStyle(fontSize: 12, color: Colors.white54),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white54,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 if (badge != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.amber.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       badge!,
-                      style: const TextStyle(fontSize: 11, color: Colors.amber, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Colors.amber,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   )
                 else
-                  const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.amber),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: Colors.amber,
+                  ),
               ],
             ),
           ),
