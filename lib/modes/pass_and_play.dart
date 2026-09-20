@@ -13,7 +13,6 @@ class PassAndPlayScreen extends StatefulWidget {
 
 class _PassAndPlayScreenState extends State<PassAndPlayScreen> {
   final GameState state = GameState();
-  List<int> currentDice = [1, 1];
   bool canRoll = true;
   String infoText = "برای شروع، تاس بریزید";
 
@@ -21,21 +20,55 @@ class _PassAndPlayScreenState extends State<PassAndPlayScreen> {
     if (!canRoll) return;
 
     setState(() {
-      currentDice = DiceRenderer.roll();
-      state.availableMoves = List.from(currentDice);
+      final rolled = DiceRenderer.roll();
+      state.dice = List.from(rolled);
       canRoll = false;
       final turn = state.isWhiteTurn ? "سفید" : "سیاه";
-      infoText = "نوبت: $turn | تاس: ${currentDice.join(' - ')}";
+      infoText = "نوبت: $turn | تاس: ${state.dice.join(' و ')}";
     });
   }
 
-  void _nextTurn() {
+  void _endTurn() {
     setState(() {
       state.isWhiteTurn = !state.isWhiteTurn;
-      state.availableMoves.clear();
+      state.dice.clear();
+      state.selectedPoint = null;
+      state.validMoves.clear();
       canRoll = true;
       final turn = state.isWhiteTurn ? "سفید" : "سیاه";
-      infoText = "نوبت: $turn | لمس دکمه برای پرتاب تاس";
+      infoText = "نوبت: $turn | برای پرتاب تاس لمس کنید";
+    });
+  }
+
+  // محاسبه اینکه کاربر کجای تخته را لمس کرده است
+  void _handleBoardTap(Offset localPos, Size boardSize) {
+    if (state.dice.isEmpty) return;
+
+    final margin = 16.0;
+    final colW = (boardSize.width - 2 * margin) / 12.0;
+
+    if (localPos.dx < margin || localPos.dx > boardSize.width - margin) return;
+
+    final colIndex = ((localPos.dx - margin) / colW).floor().clamp(0, 11);
+    final isTop = localPos.dy < boardSize.height / 2;
+
+    // تبدیل مختصات لمس صفحه به ایندکس خانه بین ۰ تا ۲۳
+    final pointIndex = isTop ? (12 + colIndex) : (11 - colIndex);
+
+    setState(() {
+      // اگر کاربر روی یکی از مقصدهای مجاز سبز لمس کرد، حرکت انجام شود
+      if (state.selectedPoint != null && state.validMoves.contains(pointIndex)) {
+        state.makeMove(state.selectedPoint!, pointIndex);
+        if (state.dice.isEmpty) {
+          _endTurn(); // اگر تاس‌ها تمام شد نوبت بعدی
+        } else {
+          final turn = state.isWhiteTurn ? "سفید" : "سیاه";
+          infoText = "نوبت: $turn | تاس باقی‌مانده: ${state.dice.join(' و ')}";
+        }
+      } else {
+        // در غیر این صورت، ستون مهره لمس‌شده را انتخاب کن
+        state.selectPoint(pointIndex);
+      }
     });
   }
 
@@ -55,7 +88,7 @@ class _PassAndPlayScreenState extends State<PassAndPlayScreen> {
       ),
       body: Column(
         children: [
-          // نوار راهنما و وضعیت
+          // نوار وضعیت
           Container(
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             color: const Color(0xFF2E1C12),
@@ -64,48 +97,51 @@ class _PassAndPlayScreenState extends State<PassAndPlayScreen> {
               children: [
                 Text(
                   infoText,
-                  style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                 ),
                 TextButton(
-                  onPressed: _nextTurn,
+                  onPressed: _endTurn,
                   child: const Text('پایان نوبت', style: TextStyle(color: Colors.amberAccent)),
                 ),
               ],
             ),
           ),
 
-          // میز بازی و تخته اصلی
+          // میز بازی و تشخیص لمس مستقیم
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final boardSize = Size(constraints.maxWidth, constraints.maxHeight);
-                return Stack(
-                  children: [
-                    // رسم تخته و مهره‌ها و تاس
-                    CustomPaint(
-                      size: boardSize,
-                      painter: BoardPainter(
-                        points: state.points,
-                        dice: currentDice,
-                      ),
-                    ),
-
-                    // دکمه وسط برای پرتاب تاس
-                    if (canRoll)
-                      Center(
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.amber[700],
-                            foregroundColor: Colors.black87,
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          ),
-                          onPressed: _rollDice,
-                          icon: const Icon(Icons.casino),
-                          label: const Text('پرتاب تاس', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                return GestureDetector(
+                  onTapDown: (details) => _handleBoardTap(details.localPosition, boardSize),
+                  child: Stack(
+                    children: [
+                      CustomPaint(
+                        size: boardSize,
+                        painter: InteractiveBoardPainter(
+                          points: state.points,
+                          dice: state.dice,
+                          selectedPoint: state.selectedPoint,
+                          validMoves: state.validMoves,
                         ),
                       ),
-                  ],
+
+                      if (canRoll)
+                        Center(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.amber[700],
+                              foregroundColor: Colors.black87,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                            ),
+                            onPressed: _rollDice,
+                            icon: const Icon(Icons.casino),
+                            label: const Text('پرتاب تاس', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                    ],
+                  ),
                 );
               },
             ),
@@ -116,21 +152,57 @@ class _PassAndPlayScreenState extends State<PassAndPlayScreen> {
   }
 }
 
-class BoardPainter extends CustomPainter {
+class InteractiveBoardPainter extends CustomPainter {
   final List<int> points;
   final List<int> dice;
+  final int? selectedPoint;
+  final List<int> validMoves;
 
-  BoardPainter({required this.points, required this.dice});
+  InteractiveBoardPainter({
+    required this.points,
+    required this.dice,
+    required this.selectedPoint,
+    required this.validMoves,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // ۱. رسم تخته
     BoardRenderer.drawBoard(canvas, size);
-
-    // ۲. رسم مهره‌ها
     PieceRenderer.drawPieces(canvas, size, points);
 
-    // ۳. رسم تاس‌ها وسط تخته
+    final margin = 16.0;
+    final colW = (size.width - 2 * margin) / 12.0;
+
+    // هایلایت ستون انتخاب شده با کادر طلایی
+    if (selectedPoint != null) {
+      final isTop = selectedPoint! >= 12;
+      final col = isTop ? (selectedPoint! - 12) : (11 - selectedPoint!);
+      final cx = margin + col * colW + colW / 2;
+      final cy = isTop ? (margin + 35) : (size.height - margin - 35);
+
+      final highlightPaint = Paint()
+        ..color = Colors.amberAccent
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3.0;
+      canvas.drawCircle(Offset(cx, cy), colW * 0.46, highlightPaint);
+    }
+
+    // رسم نشانگرهای سبز درخشان برای خانه‌های مقصد مجاز
+    for (int target in validMoves) {
+      final isTop = target >= 12;
+      final col = isTop ? (target - 12) : (11 - target);
+      final cx = margin + col * colW + colW / 2;
+      final cy = isTop ? (margin + 60) : (size.height - margin - 60);
+
+      // دایره سبز درخشان
+      final glowPaint = Paint()..color = const Color(0xAA4CAF50);
+      canvas.drawCircle(Offset(cx, cy), 16, glowPaint);
+
+      final innerPaint = Paint()..color = const Color(0xFF81C784);
+      canvas.drawCircle(Offset(cx, cy), 8, innerPaint);
+    }
+
+    // رسم تاس‌ها در مرکز
     if (dice.isNotEmpty) {
       final centerY = size.height / 2;
       final centerX = size.width / 2;
