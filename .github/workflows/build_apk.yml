@@ -27,7 +27,7 @@ jobs:
 
       - name: Create Flutter Android Scaffold
         run: |
-          flutter create . --platforms=android --org=com.amirstar
+          flutter create . --project-name gemini_backgammon --platforms=android --org=com.amirstar
 
       - name: Install Dependencies
         run: flutter pub get
